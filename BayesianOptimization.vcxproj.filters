@@ -24,7 +24,7 @@
     <ClCompile Include="src\SurrogateModel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\AcquisitionFunc.cpp">
+    <ClCompile Include="src\AcquisitionFcn.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\GaussianProcess.cpp">
@@ -41,7 +41,7 @@
     <ClInclude Include="include\SurrogateModel.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\AcquisitionFunc.h">
+    <ClInclude Include="include\AcquisitionFcn.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="include\GaussianProcess.h">

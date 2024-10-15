@@ -15,12 +15,13 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <queue>
 #include <Eigen/Dense>
 
-//struct NextPointCandiate {
-//    Eigen::VectorXd candiate_predictor;
-//    Eigen::VectorXd candiate_response;
-//};
+struct PointIncumbent {
+    Eigen::VectorXd candiate_predictor;
+    Eigen::VectorXd candiate_response;
+};
 
 //struct ObjFcnEvaluation {
 //    Eigen::VectorXd evaluation_response; // 目标函数值
@@ -40,6 +41,7 @@ public:
     // objective_fcn
     int number_bayesopt = 0;
     int number_evaluation = 0; // 对未知函数的采样/对目标函数的评估次数
+    int number_max_iter = 10;
     std::vector<Trace> trace_table;
 
     std::string surrogate_model;
@@ -51,7 +53,8 @@ public:
     int response_dimension;
     Eigen::MatrixXd response_set;
 
-private:
+private: 
+    std::queue<Eigen::VectorXd*> init_try_point_queue;
     bool optimization_finished = false;
 
 public:
@@ -65,7 +68,11 @@ public:
 private:
     Eigen::MatrixXd validateDataInput(Eigen::MatrixXd& data_block, int& data_dimension);
 
+    std::queue<Eigen::VectorXd*> processInitializationData(const Eigen::VectorXd& x_lower, const Eigen::VectorXd& x_upper, const int& number_init);
+
     /*采样下一个候选点*/
+    PointIncumbent findIncumbent();
+
     Eigen::VectorXd findNextInAcquisitionFcn();
 
     Eigen::VectorXd fitAcquisitionFcn();

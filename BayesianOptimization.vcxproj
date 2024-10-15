@@ -148,7 +148,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\BayesianOptimization.cpp" />
-    <ClCompile Include="src\AcquisitionFunc.cpp" />
+    <ClCompile Include="src\AcquisitionFcn.cpp" />
     <ClCompile Include="src\GaussianProcess.cpp" />
     <ClCompile Include="src\RMSFilter.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -156,7 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\BayesianOptimization.h" />
-    <ClInclude Include="include\AcquisitionFunc.h" />
+    <ClInclude Include="include\AcquisitionFcn.h" />
     <ClInclude Include="include\GaussianProcess.h" />
     <ClInclude Include="include\RMSFilter.h" />
     <ClInclude Include="include\SurrogateModel.h" />
