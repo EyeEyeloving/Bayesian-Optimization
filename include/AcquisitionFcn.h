@@ -15,17 +15,22 @@ struct AFcnPI {
 	Eigen::VectorXd GammaX;
 };
 
-class AcquisitionFunc
+class AcquisitionFcn
 {
 public:
 	std::string acquisition_func;
 
+private:
+	Eigen::VectorXd candiate_predictor;
+
 public:
-	AcquisitionFunc();
+	AcquisitionFcn();
 
-	AcquisitionFunc(std::string afcn_name);
+	AcquisitionFcn(std::string afcn_name);
 
-	void fit();
+	void fit(std::string afcn_name);
+
+	Eigen::VectorXd getNextCandiatePoint() const;
 
 private:
 	/* PI Function

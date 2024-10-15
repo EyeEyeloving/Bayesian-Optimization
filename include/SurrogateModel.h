@@ -9,19 +9,25 @@
 
 #include <iostream>
 #include <string>
+#include <Eigen/Dense>
+
+struct GPAgent {
+	Eigen::MatrixXd mu_gp;
+	Eigen::MatrixXd cov_gp;
+};
 
 class SurrogateModel
 {
-public:
-	std::string surrogate_model;
+private:
+	bool model_strategy_set = false;
 
 public:
 	SurrogateModel();
 
-	SurrogateModel(std::string surrogate);
+	void fit(const Eigen::MatrixXd& predictor_set, const Eigen::MatrixXd& response_set, std::string& surrogate_name);
 
-	void fit();
+//private: // 类的继承无法使用private
+	void assumeBayesianPrior();
 
-private:
-	void fitGaussianProcess();
+	void fitGaussianProcess(const Eigen::MatrixXd& predictor_set, const Eigen::MatrixXd& response_set);
 };

@@ -11,28 +11,48 @@
 #pragma once
 
 #include "SurrogateModel.h"
-#include "AcquisitionFunc.h"
+#include "AcquisitionFcn.h"
 #include <iostream>
 #include <string>
+#include <vector>
 #include <Eigen/Dense>
 
-struct NextPointCandiate
-{
-    Eigen::VectorXd candiate_predictor;
-    Eigen::VectorXd candiate_response;
+//struct NextPointCandiate {
+//    Eigen::VectorXd candiate_predictor;
+//    Eigen::VectorXd candiate_response;
+//};
+
+//struct ObjFcnEvaluation {
+//    Eigen::VectorXd evaluation_response; // 目标函数值
+//};
+
+struct Trace {
+    std::vector<int> index_trace; // 代理模型估计的最优位置的索引
+    Eigen::MatrixXd best_estimated_trace; // 代理模型预测的最优目标值
+    Eigen::MatrixXd best_sampling_trace; // 基于采样/trial的实际最优目标值
 };
 
 class BayesianOptimization :
-    public SurrogateModel, public AcquisitionFunc
+    public SurrogateModel, public AcquisitionFcn
 {
 public:
     /*BayesOpt*/
+    // objective_fcn
+    int number_bayesopt = 0;
+    int number_evaluation = 0; // 对未知函数的采样/对目标函数的评估次数
+    std::vector<Trace> trace_table;
+
     std::string surrogate_model;
     std::string acquisition_func;
 
     /*数据信息*/
     int predictor_dimension;
+    Eigen::MatrixXd predictor_set;
     int response_dimension;
+    Eigen::MatrixXd response_set;
+
+private:
+    bool optimization_finished = false;
 
 public:
     BayesianOptimization();
@@ -46,6 +66,23 @@ private:
     Eigen::MatrixXd validateDataInput(Eigen::MatrixXd& data_block, int& data_dimension);
 
     /*采样下一个候选点*/
-    NextPointCandiate findNextPointCandiate(const Eigen::VectorXd& x_lower, const Eigen::VectorXd& x_upper);
+    Eigen::VectorXd findNextInAcquisitionFcn();
+
+    Eigen::VectorXd fitAcquisitionFcn();
+
+    /*使用这个候选点执行Action并获得Reward，即Evaluation by sampling the objective function*/
+    Eigen::VectorXd callObjectiveFcn(const Eigen::VectorXd& candiate_predictor);
+
+    /*扩充已知数据集*/
+    void augmentObservationSet(const Eigen::VectorXd candiate_predictor, const Eigen::VectorXd candiate_response);
+
+    /*训练代理模型*/
+    void fitSurrogateModel();
+
+    /*更新trace_table属性*/
+    void updateTrace();
+
+    /*更新代理模型*/
+    void updateSurrogateMdl();
 };
 
