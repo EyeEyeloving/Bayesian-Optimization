@@ -1,5 +1,6 @@
 #include "BayesianOptimization.h"
 #include <random>
+#include <NLopt/nlopt.hpp>
 
 BayesianOptimization::BayesianOptimization()
 	: surrogate_model("GaussianProcess"), acquisition_func("ExpectedImprovement") {
@@ -17,7 +18,7 @@ Eigen::MatrixXd BayesianOptimization::validateDataInput(Eigen::MatrixXd& data_bl
 	return data_block.transpose();
 }
 
-std::queue<Eigen::VectorXd*> BayesianOptimization::processInitializationData(const Eigen::VectorXd& x_lower, const Eigen::VectorXd& x_upper, const int& number_init) {
+std::queue<Eigen::VectorXd*> BayesianOptimization::processInitializationData(const int& number_init) {
 	/**在范围内进行随机选取predictor
 	* matlab中randomXFeasiblePoints和initialXFeasiblePoints函数还分析了生成的随机输入是否符合既定约束
 	*/
@@ -27,9 +28,9 @@ std::queue<Eigen::VectorXd*> BayesianOptimization::processInitializationData(con
 
 	/*在initialXFeasiblePoints函数中还讨论了生成的最佳的初始随机采样点*/
 	for (int i = 0; i < number_init; i++) {
-		Eigen::VectorXd random_predictor(x_lower.rows()); // 要用new吗？
-		for (int nd = 0; nd < x_lower.rows(); nd++) {
-			std::uniform_real_distribution<> dis(x_lower(nd), x_upper(nd));
+		Eigen::VectorXd random_predictor(predictor_domainMin.size()); // 要用new吗？
+		for (int nd = 0; nd < predictor_domainMin.size(); nd++) {
+			std::uniform_real_distribution<> dis(predictor_domainMin[nd], predictor_domainMax[nd]);
 			random_predictor(nd) = dis(gen);
 		}
 		myQueue.emplace(&random_predictor);
@@ -75,7 +76,7 @@ void BayesianOptimization::fit(Eigen::MatrixXd& data_block_raw, int& data_dimens
 	Eigen::VectorXd x_lower = data_block.colwise().minCoeff(); // 待定这样写
 	Eigen::VectorXd x_upper = data_block.colwise().maxCoeff();
 	int number_init = 5;
-	init_try_point_queue = processInitializationData(x_lower, x_upper, number_init);
+	init_try_point_queue = processInitializationData(number_init);
 
 	// Eigen::VectorXd candiate_predictor(predictor_dimension);
 	// candiate_predictor.setZero();
@@ -138,9 +139,6 @@ PointIncumbent BayesianOptimization::findIncumbent() {
 
 	/*matlab使用fminbndGlobal寻找全局最优解，避免找到局部最优*/
 
-	// 假设找到了全局最优
-	candiate_response = SurrogateModel::predict(candiate_predictor);
-
 	return { candiate_predictor, candiate_response };
 }
 
@@ -155,31 +153,75 @@ Eigen::VectorXd BayesianOptimization::findNextInAcquisitionFcn() {
 
 	/*如果初始探索点完成*/
 
-	// matlab中shouldChooseRandomPoint的作用是决定是否应该选择一个随机点
-	// 来探索目标函数空间，而不是依赖现有的代理模型进行预测和优化。
+	// matlab中shouldChooseRandomPoint函数
+	// 作用是决定是否应该选择一个随机来探索目标函数空间，而不是依赖现有的代理模型进行预测和优化。
+	//
+	// matlab中legalizePoints函数
+    // 作用是将原始输入（经过转换的点）映射回可行的解空间，并确保这些解符合问题定义的所有约束。
+	//
+	// matlab中ProbAllConstraintsSatisfied函数
+	// 计算有约束的概率
 
-	/*基于采集函数选择下一个探索点*/
-
+	/**全局最优化
+	* 基于采集函数，找到采样函数中使得采样函数概率最大的点，作为下一个探索点
+	*/
 	Eigen::VectorXd candiate_predictor = fitAcquisitionFcn();
+
+	return candiate_predictor;
 }
 
-/*matlab中run函数中的findIncumbent函数，可能并不需要在现阶段完成解读*/
-//NextPointCandiate BayesianOptimization::findNextPointCandiate(const Eigen::VectorXd& x_lower, const Eigen::VectorXd& x_upper) {
-//	Eigen::VectorXd candiate_predictor(predictor_dimension);
-//	Eigen::VectorXd candiate_response(response_dimension);
-//
-//	/*为了找到更合适的下一个采样点，matlab使用了函数fminbndGlobal和fminsearch*/ 
-//
-//	// 生成给定范围内的随机数
-//	// int number_candiate = 1;
-//	std::mt19937 gen(42);
-//	for (int nd = 0; nd < predictor_dimension; nd++) {
-//		std::uniform_real_distribution<> dis(x_lower(nd), x_upper(nd));
-//		candiate_predictor(nd) = dis(gen);
-//	}
-//	// 计算采样点的函数值
-//	candiate_response.setConstant(1);
-//	
-//	return {candiate_predictor, candiate_response};
-//}
+std::vector<PointIncumbent> BayesianOptimization::findFBestGlobal(int& num_initial_points, int& num_topK_points) {
+	std::vector<PointIncumbent> candiatesN; // 存储所有的候选点
+	std::vector<double> scores; // 存储候选点的目标函数值
+
+	/*基于NLopt库进行全局优化*/
+	nlopt::opt opt(nlopt::GN_CRS2_LM, predictor_domainMin.size());
+	opt.set_lower_bounds(predictor_domainMin); // 设置优化边界
+	opt.set_upper_bounds(predictor_domainMax);
+	// 
+	opt.set_max_objective([this](const Eigen::VectorXd& predictor) {
+		return SurrogateModel::predict(predictor);
+		}, nullptr);
+	// 设置终止条件，例如容差和最大迭代次数
+	opt.set_xtol_rel(1e-6);
+	opt.set_maxeval(100); // 最大迭代次数
+
+	std::mt19937 gen(42);
+	// int num_initial_points = 1;
+	// 对每个初始点执行优化
+	for (int i = 0; i < num_initial_points; i++) {
+		std::vector<double> x0(predictor_dimension);
+
+		// 为每个维度生成一个随机初始猜测
+		for (int nd = 0; nd < predictor_dimension; nd++) {
+			std::uniform_real_distribution<> dis(predictor_domainMin[nd], predictor_domainMax[nd]);
+			x0[nd] = dis(gen);
+		}
+
+		PointIncumbent candiate;
+		double fbest;
+		// 执行优化
+		nlopt::result result = opt.optimize(x0, fbest);
+		// double转换为VectorXd
+		candiate.candiate_predictor = Eigen::Map<Eigen::VectorXd>(x0.data(), x0.size()); 
+		candiate.candiate_response = SurrogateModel::predict(candiate.candiate_predictor);
+		candiatesN.emplace_back(candiate);
+		scores.emplace_back(fbest); // 初始值是什么？
+	}
+
+	/*选择前k个最佳点*/
+	std::vector<PointIncumbent> candicatesK;
+	std::vector<int> index(candiatesN.size()); // 创建candidatesN的索引
+	for (int i = 0; i < candiatesN.size(); i++) {
+		index[i] = i;
+	}
+	std::sort(index.begin(), index.end(), [&scores](int a, int b) {
+		return scores[a] > scores[b]; 
+		});
+	for (int k = 0; k < num_topK_points; k++) {
+		candicatesK.emplace_back(candiatesN[index[k]]);
+	}
+
+	return candicatesK;
+}
 

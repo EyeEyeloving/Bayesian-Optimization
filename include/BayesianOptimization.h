@@ -48,6 +48,8 @@ public:
     std::string acquisition_func;
 
     /*数据信息*/
+    std::vector<double> predictor_domainMin;
+    std::vector<double> predictor_domainMax;
     int predictor_dimension;
     Eigen::MatrixXd predictor_set;
     int response_dimension;
@@ -68,10 +70,12 @@ public:
 private:
     Eigen::MatrixXd validateDataInput(Eigen::MatrixXd& data_block, int& data_dimension);
 
-    std::queue<Eigen::VectorXd*> processInitializationData(const Eigen::VectorXd& x_lower, const Eigen::VectorXd& x_upper, const int& number_init);
+    std::queue<Eigen::VectorXd*> processInitializationData(const int& number_init);
 
     /*采样下一个候选点*/
     PointIncumbent findIncumbent();
+
+    std::vector<PointIncumbent> findFBestGlobal(int& num_initial_points, int& num_best_points);
 
     Eigen::VectorXd findNextInAcquisitionFcn();
 
