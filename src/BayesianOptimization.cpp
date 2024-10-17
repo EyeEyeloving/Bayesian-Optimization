@@ -136,8 +136,12 @@ PointIncumbent BayesianOptimization::findIncumbent() {
 	Eigen::VectorXd candiate_predictor(predictor_dimension);
 	Eigen::VectorXd candiate_response(response_dimension);
 
-	// matlab使用fminbndGlobal寻找全局最优解
+	/*matlab使用fminbndGlobal寻找全局最优解，避免找到局部最优*/
 
+	// 假设找到了全局最优
+	candiate_response = SurrogateModel::predict(candiate_predictor);
+
+	return { candiate_predictor, candiate_response };
 }
 
 Eigen::VectorXd BayesianOptimization::findNextInAcquisitionFcn() {
@@ -150,6 +154,13 @@ Eigen::VectorXd BayesianOptimization::findNextInAcquisitionFcn() {
 	}
 
 	/*如果初始探索点完成*/
+
+	// matlab中shouldChooseRandomPoint的作用是决定是否应该选择一个随机点
+	// 来探索目标函数空间，而不是依赖现有的代理模型进行预测和优化。
+
+	/*基于采集函数选择下一个探索点*/
+
+	Eigen::VectorXd candiate_predictor = fitAcquisitionFcn();
 }
 
 /*matlab中run函数中的findIncumbent函数，可能并不需要在现阶段完成解读*/

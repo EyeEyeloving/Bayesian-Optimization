@@ -26,6 +26,8 @@ public:
 
 	void fit(const Eigen::MatrixXd& predictor_set, const Eigen::MatrixXd& response_set, std::string& surrogate_name);
 
+	Eigen::VectorXd predict(const Eigen::VectorXd& predictor);
+
 //private: // 类的继承无法使用private
 	void assumeBayesianPrior();
 

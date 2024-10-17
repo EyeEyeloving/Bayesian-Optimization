@@ -29,7 +29,7 @@ public:
 
 	void fit(const Eigen::MatrixXd& X_train, const Eigen::MatrixXd& Y_train);
 
-	void predict();
+	Eigen::VectorXd predict(const Eigen::VectorXd& predictor);
 
 private:
 	Eigen::RowVectorXd fitGaussianKernel(const Eigen::MatrixXd& X1, const Eigen::VectorXd& X2);

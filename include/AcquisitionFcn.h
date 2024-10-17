@@ -9,10 +9,19 @@
 #include <string>
 #include <Eigen/Dense>
 
+struct objectiveFcnGP {
+	double beta;
+	double sigma;
+};
+
 struct AFcnPI {
-	Eigen::VectorXd PI;
-	Eigen::VectorXd FSD;
-	Eigen::VectorXd GammaX;
+	Eigen::RowVectorXd PI;
+	Eigen::RowVectorXd FSD;
+	Eigen::RowVectorXd GammaX;
+};
+
+struct AFcnEI {
+	Eigen::RowVectorXd EI;
 };
 
 class AcquisitionFcn
@@ -37,10 +46,10 @@ private:
 	每一个新采样点会有多大的概率能够比当前已观测到的最佳的采样点更好
 	这个“更好”的衡量是什么？
 	弊端在于更关注于Exploitation，所以实际会加参数来更Exploration*/
-	AFcnPI fitProbabilityOfImprovement(const double FBest, const double margin);
+	AFcnPI fitProbabilityOfImprovement(const Eigen::MatrixXd domainX, objectiveFcnGP obj, const double FBest, const double margin);
 
 	/* EI Function
 	*/
-	void fitExpectedImprovement();
+	AFcnEI fitExpectedImprovement(const Eigen::MatrixXd domainX, objectiveFcnGP obj, double FBest);
 };
 
